@@ -6,7 +6,64 @@
 namespace OW {
     int abletotread = 0;
     int entitytime = 0;
-    
+
+	inline std::vector<std::pair<uint64_t, uint64_t>> get_ow_entities()
+	{
+		std::vector<std::pair<uint64_t, uint64_t>> result;
+
+		struct Entity {
+			uint64_t entity;
+			uint64_t pad;
+		};
+
+		uintptr_t entity_list = SDK->RPM<uint64_t>(SDK->dwGameBase + offset::Address_entity_base);
+
+		MEMORY_BASIC_INFORMATION mbi{};
+		VirtualQueryEx(SDK->hProcess, (LPCVOID)entity_list, &mbi, sizeof(mbi));
+
+		SIZE_T entity_list_size = mbi.RegionSize / sizeof(Entity);
+		Entity* raw_list = new Entity[entity_list_size];
+
+		if (ReadProcessMemory(SDK->hProcess, (LPCVOID)entity_list, raw_list, mbi.RegionSize, nullptr))
+		{
+			for (size_t i = 0; i < entity_list_size; ++i)
+			{
+				uint64_t cur_entity = raw_list[i].entity;
+				if (cur_entity)
+				{
+					uint64_t common_linker = DecryptComponent(cur_entity, TYPE_LINK);
+					//printf("LINK:%llx\n", common_linker);
+					if (common_linker)
+					{
+						uint32_t unique_id = SDK->RPM<uint32_t>(common_linker + 0xD4);
+						//printf("unique_id:%llx\n", unique_id);
+						for (size_t x = 0; x < entity_list_size; ++x)
+						{
+							uint64_t possible_common = raw_list[x].entity;
+							if (possible_common && SDK->RPM<uint32_t>(possible_common + 0x138) == unique_id)
+							{
+								//printf("%llx", unique_id);
+								result.emplace_back(possible_common, cur_entity);
+								break;
+							}
+							else {
+								uint64_t Ptr = SDK->RPM<uint64_t>(possible_common + 0x30) & 0xFFFFFFFFFFFFFFC0;
+								if (Ptr < 0xFFFFFFFFFFFFFFEF) {
+									uint64_t EntityID = SDK->RPM<uint64_t>(Ptr + 0x10);
+									if (EntityID == 0x400000000000060 || EntityID == 0x40000000000480A || EntityID == 0x40000000000005F || EntityID == 0x400000000002533) {
+										result.emplace_back(possible_common, cur_entity);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		delete[] raw_list;
+		return result;
+	}
+
     void entity_scan_thread() {
         while (Config::doingentity == 1) {
 			if (abletotread == 0) {
