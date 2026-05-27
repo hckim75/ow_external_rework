@@ -3,7 +3,7 @@
 #include "Globals.hpp"
 #include <vector>
 #include <windows.h>
-#include "offset.hpp" // 오프셋 구조체 헤더 포함
+#include "Offset.hpp" // 오프셋 구조체 헤더 포함
 // TODO: Config.hpp, SDK.hpp 등 필요한 헤더 포함
 
 namespace OW {
