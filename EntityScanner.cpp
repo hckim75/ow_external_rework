@@ -25,7 +25,7 @@ void OW::entity_scan_thread(const offset::ScanOffsets& offsets) {
                 uint64_t pad;
             };
 
-            uintptr_t entity_list = SDK->RPM<uint64_t>(SDK->dwGameBase + offsets.Address_entity_base);
+            uintptr_t entity_list = SDK->RPM<uint64_t>(SDK->dwGameBase + offsets.entity_base);
 
             MEMORY_BASIC_INFORMATION mbi{};
             VirtualQueryEx(SDK->hProcess, (LPCVOID)entity_list, &mbi, sizeof(mbi));
