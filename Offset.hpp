@@ -2,64 +2,30 @@
 #include <cstdint>
 
 /*
-  [ cur_entity / ComponentParent ] (Memory Region)
-  +--------------------------------------------------------+
-  | +[OFFSET_COMPONENT_TABLE] ---> [ Component Array ]     |
-  +--------------------------+    +-----------------------+
-  | +[OFFSET_ENTITY_FLAGS]   |    | [0] TYPE_HEALTH       |---> (Decrypt) ---> [ c_entity::HealthBase ]
-  +--------------------------+    +-----------------------+
-  | +[OFFSET_PTR_30] ------+ |    | [1] TYPE_VELOCITY     |---> (Decrypt) ---> [ c_entity::VelocityBase ]
-  +------------------------| |    +-----------------------+
-  | +[OFFSET_ENTITY_TYPE]  | |    | [2] TYPE_TEAM         |---> (Decrypt) ---> [ c_entity::TeamBase ]
-  +------------------------| |    +-----------------------+
-                           | |    | [3] TYPE_BONE         |---> (Decrypt) ---> [ c_entity::BoneBase ]
-                           | |    +-----------------------+
-  +------------------------+ |    | [4] TYPE_OUTLINE      |---> (Decrypt) ---> [ c_entity::OutlineBase ]
-  |                          |    +-----------------------+
-  v [ Ptr_30 Data Block ]    |    | [5] TYPE_LINK         |---> (Decrypt) ---> [ c_entity::LinkBase ]
-  +-----------------------+  |    +-----------------------+
-  | +[OFFSET_ENTITY_ID]   |  |    | [6] TYPE_ROTATION     |---> (Decrypt) ---> [ c_entity::RotationBase ]
-  | (Object Resource Hash)|  |    +-----------------------+
-  +-----------------------+  |    | [7] TYPE_SKILL        |---> (Decrypt) ---> [ c_entity::SkillBase ]
-                             |    +-----------------------+
-  +--------------------------+
-  v
-  [ LinkParent ] (Memory Region)
-  +--------------------------------------------------------+
-  | +[OFFSET_COMPONENT_TABLE] ---> [ Link Component Array ]|
-  +--------------------------+    +-----------------------+
-  | ...                      |    | [x] TYPE_P_HEROID     |---> (Decrypt) ---> [ c_entity::HeroBase ]
-  +--------------------------+    +-----------------------+
-                                  | [y] TYPE_P_VISIBILITY |---> (Decrypt) ---> [ c_entity::VisBase ]
-                                  +-----------------------+
-                                  | [z] PLAYERCONTROLLER  |---> (Decrypt) ---> [ c_entity::AngleBase ]
-                                  +-----------------------+
+[최상위 엔티티 베이스 주소] (RawEntity*)
+   │
+   ├──> 1. [0x00] ComponentTablePtr 
+   │         │
+   │         └──> [TYPE_LINK 인덱스] ──> (DecryptComponent 복호화 연산)
+   │                                           │
+   │                                           └──> [CommonLinker* 주소 변환]
+   │                                                   │
+   │                                                   └──> [0xD4] NetworkUniqueID (값 추출)
+   │
+   v
+[2차 스캔 대상을 시드로 수색] (LinkParentEntity*)
+   │
+   └──> 2. [0x138] CommonUniqueID (값 추출)
+             │
+             └──> [대조 작업]: NetworkUniqueID == CommonUniqueID 인가?
+                       │
+                       └──> (TRUE 일 때): 해당 스캔 대상을 [LinkParent]로 확정
+                                 │
+                                 └──> [0x00] LinkComponentTablePtr 접근 가능
+                                           │
+                                           ├──> [TYPE_P_HEROID] ──> 복호화 ──> HeroBase
+                                           └──> [CONTROLLER]     ──> 복호화 ──> AngleBase
 
-  [ c_entity Class Instance Layout ]
-  +-------------------------------------------------------------------------------+
-  | .address       ---> ComponentParent Address (Raw Entity Pointer)              |
-  +-------------------------------------------------------------------------------+
-  | .HealthBase    ---> [HEALTH]   ---RPM---> .PlayerHealth / .PlayerHealthMax     |
-  |                                           (isImmortal / isBarrierProjected)   |
-  +-------------------------------------------------------------------------------+
-  | .VelocityBase  ---> [VELOCITY] ---RPM---> .pos (3D Coord) / .velocity (Speed)  |
-  +-------------------------------------------------------------------------------+
-  | .BoneBase      ---> [BONE]     ---RPM---> .head_pos / .neck_pos / .chest_pos   |
-  +-------------------------------------------------------------------------------+
-  | .HeroBase      ---> [HEROID]   ---RPM---> .HeroID (Wreckingball, D.va, etc)   |
-  +-------------------------------------------------------------------------------+
-  | .LinkBase      ---> [LINK]     ---RPM---> .unique_id (Network Matching ID)    |
-  +-------------------------------------------------------------------------------+
-  | .TeamBase      ---> [TEAM]     ---RPM---> .Team (Enemy/Ally Bool Flag)        |
-  +-------------------------------------------------------------------------------+
-  | .VisBase       ---> [VIS]      ---RPM---> .Vis (Visible / Wall check)         |
-  +-------------------------------------------------------------------------------+
-  | .SkillBase     ---> [SKILL]    ---RPM---> .skill1act / .ultimate (Ult Gauge)  |
-  +-------------------------------------------------------------------------------+
-  | .OutlineBase   ---> [OUTLINE]  ---WPM---> Ingame Glow / Border (Rainbow/HP)   |
-  +-------------------------------------------------------------------------------+
-  | .AngleBase     ---> [ANGLES]   ---WPM---> (Local Only) ViewAngle / NoRecoil   |
-  +-------------------------------------------------------------------------------+
 */
 namespace offset {
     struct ScanOffsets {
