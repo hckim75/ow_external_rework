@@ -30,7 +30,7 @@ void OW::entity_scan_thread(const offset::ScanOffsets& offsets) {
 			// entity 리스트는 캐시 적중율을 극대화하기 위해 페이지 단위 메모리 할당 사용 (VirtualAlloc)
 			// 따라서, entity 리스트 저장 단독으로 N개의 연속 페이지를 할당받음
 			
-			// VirtualAlloc으로 할당받은 연속된 페이지들 (Memory Region) 정보를 저장할 구조체
+			// VirtualAlloc으로 할당받은 N개의 연속 페이지 (Memory Region) 정보를 저장할 구조체
             MEMORY_BASIC_INFORMATION mbi{};
 			// entity_list를 저장하도록 할당받은 Memory Region의 정보를 질의
             VirtualQueryEx(SDK->hProcess, (LPCVOID)entity_list, &mbi, sizeof(mbi));
