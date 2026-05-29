@@ -36,6 +36,30 @@ typedef struct _EntityShell {
     uint8_t pad_08[8];      // 0x08: 패딩
     uint32_t EntityFlags;   // 0x10: 플래그
 } EntityShell;
+
+// 특정 엔티티가 육체인지 영혼인지 판별하는 가상 함수
+void CheckEntityType(EntityShell* entity) {
+    ComponentTable* table = entity->pTable;
+    
+    // 1. 육체 판별 로직
+    // 5번 칸(IDX_LINK)에 값이 존재하면 100% 육체입니다.
+    if (table->EncryptedPointers[IDX_LINK] != 0) {
+        printf("이 엔티티는 육체(ComponentParent)입니다.\n");
+    }
+    
+    // 2. 영혼 판별 로직
+    // 5번 칸(IDX_LINK)이 텅 비어있고, 10번 칸(IDX_HEROID)에 값이 있다면 100% 영혼입니다.
+    else if (table->EncryptedPointers[IDX_LINK] == 0 && 
+             table->EncryptedPointers[IDX_HEROID] != 0) {
+        printf("이 엔티티는 영혼(LinkParent)입니다.\n");
+    }
+    
+    // 3. 기타 잡동사니
+    // 둘 다 비어있다면 물리 깡통(드럼통 등)이거나 다른 오브젝트입니다.
+    else {
+        printf("이 엔티티는 단순 오브젝트입니다.\n");
+    }
+}
 */
 
 namespace offset {
